@@ -52,18 +52,6 @@ func (suite *WebTemperatureHandlerTestSuite) TestTemperatureByCepHandler() {
 		assert.Equal(suite.T(), "", rr.Body.String())
 	})
 
-	suite.Run("should return erro invalid zipcode", func() {
-		h := NewWebTemperatureHandler(suite.FindTemperatureMock)
-
-		rr := httptest.NewRecorder()
-		handler := http.HandlerFunc(h.TemperatureByCepHandler)
-		req, err := http.NewRequest("GET", "/temperature?cep=65909001A", nil)
-		handler.ServeHTTP(rr, req)
-		assert.Nil(suite.T(), err)
-		assert.Equal(suite.T(), http.StatusUnprocessableEntity, rr.Code)
-		assert.Equal(suite.T(), "invalid zipcode", rr.Body.String())
-	})
-
 	suite.Run("should return erro zipcode not found", func() {
 		suite.FindTemperatureMock.EXPECT().
 			Execute(gomock.Any(), gomock.Any()).

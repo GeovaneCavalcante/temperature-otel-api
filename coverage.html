@@ -57,11 +57,15 @@
 				
 				<option value="file0">github.com/GeovaneCavalcante/temperatura-cep/internal/infra/web/handler/temperature.go (100.0%)</option>
 				
-				<option value="file1">github.com/GeovaneCavalcante/temperatura-cep/internal/usecase/temperature/find_temperature.go (100.0%)</option>
+				<option value="file1">github.com/GeovaneCavalcante/temperatura-cep/internal/infra/web/handler/temperature_proxy.go (0.0%)</option>
 				
-				<option value="file2">github.com/GeovaneCavalcante/temperatura-cep/pkg/address/viacep/viacep.go (100.0%)</option>
+				<option value="file2">github.com/GeovaneCavalcante/temperatura-cep/internal/usecase/temperature/find_temperature.go (100.0%)</option>
 				
-				<option value="file3">github.com/GeovaneCavalcante/temperatura-cep/pkg/temperature/weather/weather.go (100.0%)</option>
+				<option value="file3">github.com/GeovaneCavalcante/temperatura-cep/internal/usecase/temperature/proxy_temperature.go (0.0%)</option>
+				
+				<option value="file4">github.com/GeovaneCavalcante/temperatura-cep/pkg/address/viacep/viacep.go (100.0%)</option>
+				
+				<option value="file5">github.com/GeovaneCavalcante/temperatura-cep/pkg/temperature/weather/weather.go (100.0%)</option>
 				
 				</select>
 			</div>
@@ -79,21 +83,17 @@
 
 import (
         "encoding/json"
+        "fmt"
         "net/http"
 
         "github.com/GeovaneCavalcante/temperatura-cep/internal/entity"
+        "github.com/GeovaneCavalcante/temperatura-cep/internal/infra/web/presenter"
         "github.com/GeovaneCavalcante/temperatura-cep/pkg/logger"
         "github.com/GeovaneCavalcante/temperatura-cep/pkg/temperature"
 )
 
 type WebTemperatureHandler struct {
         FindTemperature entity.FindTemperatureUseCase
-}
-
-type TemperaturePresenter struct {
-        TempC float64 `json:"temp_C"`
-        TempF float64 `json:"temp_F"`
-        TempK float64 `json:"temp_K"`
 }
 
 func NewWebTemperatureHandler(findTemperature entity.FindTemperatureUseCase) *WebTemperatureHandler <span class="cov8" title="1">{
@@ -105,6 +105,7 @@ func NewWebTemperatureHandler(findTemperature entity.FindTemperatureUseCase) *We
 func (h *WebTemperatureHandler) TemperatureByCepHandler(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
 
         ctx := r.Context()
+
         logger.Info("[TemperatureByCepHandler] starting handler")
         if r.Method != http.MethodGet </span><span class="cov8" title="1">{
                 w.WriteHeader(http.StatusMethodNotAllowed)
@@ -114,15 +115,9 @@ func (h *WebTemperatureHandler) TemperatureByCepHandler(w http.ResponseWriter, r
 
         zipcode := r.URL.Query().Get("cep")
 
-        if !zipCodeValidator(zipcode) </span><span class="cov8" title="1">{
-                logger.Error("[TemperatureByCepHandler] invalid zipcode", nil)
-                w.WriteHeader(http.StatusUnprocessableEntity)
-                w.Write([]byte("invalid zipcode"))
-                return
-        }</span>
+        tempData, err := h.FindTemperature.Execute(ctx, zipcode)
 
-        <span class="cov8" title="1">tempData, err := h.FindTemperature.Execute(ctx, zipcode)
-
+        fmt.Println(err)
         if err == entity.ErrZipCodeNotFound </span><span class="cov8" title="1">{
                 logger.Error("[TemperatureByCepHandler] zipcode not found", err)
                 w.WriteHeader(http.StatusNotFound)
@@ -138,23 +133,84 @@ func (h *WebTemperatureHandler) TemperatureByCepHandler(w http.ResponseWriter, r
         }</span>
 
         <span class="cov8" title="1">tempDataPresenter := toTemperaturePresenter(tempData)
+
         json.NewEncoder(w).Encode(&amp;tempDataPresenter)</span>
 }
 
-func toTemperaturePresenter(temp *temperature.Info) *TemperaturePresenter <span class="cov8" title="1">{
-        return &amp;TemperaturePresenter{
+func toTemperaturePresenter(temp *temperature.Info) *presenter.TemperaturePresenter <span class="cov8" title="1">{
+        return &amp;presenter.TemperaturePresenter{
                 TempC: temp.Celsius,
                 TempF: temp.Fahrenheit,
                 TempK: temp.Kelvin,
         }
 }</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package handler
 
-func zipCodeValidator(zipCode string) bool <span class="cov8" title="1">{
+import (
+        "encoding/json"
+        "net/http"
+
+        "github.com/GeovaneCavalcante/temperatura-cep/configs"
+        "github.com/GeovaneCavalcante/temperatura-cep/internal/entity"
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/logger"
+        "go.opentelemetry.io/otel"
+        "go.opentelemetry.io/otel/codes"
+)
+
+type WebTemperatureProxyHandler struct {
+        ProxyTemperature entity.ProxyTemperatureUseCase
+}
+
+func NewWebTemperatureProxyHandler(proxyTemperature entity.ProxyTemperatureUseCase) *WebTemperatureProxyHandler <span class="cov0" title="0">{
+        return &amp;WebTemperatureProxyHandler{
+                ProxyTemperature: proxyTemperature,
+        }
+}</span>
+
+func (h *WebTemperatureProxyHandler) TemperatureProxyHandler(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        configs := configs.GetEnvVars()
+        tr := otel.Tracer(configs.ServerAName)
+
+        ctx := r.Context()
+
+        logger.Info("[TemperatureByCepHandler] starting handler")
+        if r.Method != http.MethodGet </span><span class="cov0" title="0">{
+                w.WriteHeader(http.StatusMethodNotAllowed)
+                return
+        }</span>
+        <span class="cov0" title="0">w.Header().Set("Content-Type", "application/json")
+
+        zipcode := r.URL.Query().Get("cep")
+
+        if !zipCodeValidator(zipcode) </span><span class="cov0" title="0">{
+                logger.Error("[TemperatureByCepHandler] invalid zipcode", nil)
+                w.WriteHeader(http.StatusUnprocessableEntity)
+                w.Write([]byte("invalid zipcode"))
+                return
+        }</span>
+        <span class="cov0" title="0">ctx, span := tr.Start(ctx, "response time when calling service B")
+        tempData, err := h.ProxyTemperature.Execute(ctx, zipcode)
+        span.SetStatus(codes.Ok, "response time when calling service B")
+        span.End()
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error("[TemperatureByCepHandler] fail to execute usecase ProxyTemperature", err)
+                w.WriteHeader(http.StatusInternalServerError)
+                w.Write([]byte(err.Error()))
+                return
+        }</span>
+
+        <span class="cov0" title="0">json.NewEncoder(w).Encode(&amp;tempData)</span>
+
+}
+
+func zipCodeValidator(zipCode string) bool <span class="cov0" title="0">{
         return len(zipCode) == 8
 }</span>
 </pre>
 		
-		<pre class="file" id="file1" style="display: none">package temperature
+		<pre class="file" id="file2" style="display: none">package temperature
 
 import (
         "context"
@@ -194,7 +250,61 @@ func (s *FindTemperatureUseCase) Execute(ctx context.Context, zipCode string) (*
 }
 </pre>
 		
-		<pre class="file" id="file2" style="display: none">package viacep
+		<pre class="file" id="file3" style="display: none">package temperature
+
+import (
+        "context"
+        "encoding/json"
+        "fmt"
+
+        "github.com/GeovaneCavalcante/temperatura-cep/internal/entity"
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/logger"
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/requester"
+)
+
+type ProxyTemperatureUseCase struct {
+        Url       string
+        Requester requester.Sender
+}
+
+func NewProxyTemperatureUseCase(url string, requester requester.Sender) *ProxyTemperatureUseCase <span class="cov0" title="0">{
+        return &amp;ProxyTemperatureUseCase{
+                Url:       url,
+                Requester: requester,
+        }
+}</span>
+
+func (s *ProxyTemperatureUseCase) Execute(ctx context.Context, zipCode string) (*entity.TemperatureInfo, error) <span class="cov0" title="0">{
+
+        logger.Info("[ProxyTemperatureUseCase] starting usecase for zipcode: " + zipCode)
+
+        cfg := requester.Configuration{
+                Url:        s.Url + "?cep=" + zipCode,
+                Method:     "get",
+                ContetType: "application/json",
+        }
+
+        res, err := s.Requester.Send(ctx, cfg)
+
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error("[ProxyTemperatureUseCase] fail to execute http request for zipcode "+zipCode, err)
+                return nil, fmt.Errorf("fail to execute http request for zipcode %s", zipCode)
+        }</span>
+        <span class="cov0" title="0">var tempInfo entity.TemperatureInfo
+
+        err = json.Unmarshal(res.Body, &amp;tempInfo)
+        if err != nil </span><span class="cov0" title="0">{
+                logger.Error("[ProxyTemperatureUseCase] fail to unmarshal response body for zipcode "+zipCode, err)
+                return nil, err
+        }</span>
+
+        <span class="cov0" title="0">logger.Info("[ProxyTemperatureUseCase] finishing usecase for zipcode: " + zipCode + " with success")
+
+        return &amp;tempInfo, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package viacep
 
 import (
         "context"
@@ -273,7 +383,7 @@ func toAddressInfo(zipCodeInfo Response) *address.Info <span class="cov8" title=
 }</span>
 </pre>
 		
-		<pre class="file" id="file3" style="display: none">package weather
+		<pre class="file" id="file5" style="display: none">package weather
 
 import (
         "context"

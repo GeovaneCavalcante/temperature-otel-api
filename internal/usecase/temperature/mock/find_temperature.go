@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	entity "github.com/GeovaneCavalcante/temperatura-cep/internal/entity"
 	temperature "github.com/GeovaneCavalcante/temperatura-cep/pkg/temperature"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -53,4 +54,42 @@ func (m *MockFindTemperatureUseCase) Execute(ctx context.Context, zipCode string
 func (mr *MockFindTemperatureUseCaseMockRecorder) Execute(ctx, zipCode any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockFindTemperatureUseCase)(nil).Execute), ctx, zipCode)
+}
+
+// MockProxyTemperatureUseCase is a mock of ProxyTemperatureUseCase interface.
+type MockProxyTemperatureUseCase struct {
+	ctrl     *gomock.Controller
+	recorder *MockProxyTemperatureUseCaseMockRecorder
+}
+
+// MockProxyTemperatureUseCaseMockRecorder is the mock recorder for MockProxyTemperatureUseCase.
+type MockProxyTemperatureUseCaseMockRecorder struct {
+	mock *MockProxyTemperatureUseCase
+}
+
+// NewMockProxyTemperatureUseCase creates a new mock instance.
+func NewMockProxyTemperatureUseCase(ctrl *gomock.Controller) *MockProxyTemperatureUseCase {
+	mock := &MockProxyTemperatureUseCase{ctrl: ctrl}
+	mock.recorder = &MockProxyTemperatureUseCaseMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockProxyTemperatureUseCase) EXPECT() *MockProxyTemperatureUseCaseMockRecorder {
+	return m.recorder
+}
+
+// Execute mocks base method.
+func (m *MockProxyTemperatureUseCase) Execute(ctx context.Context, zipCode string) (*entity.TemperatureInfo, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Execute", ctx, zipCode)
+	ret0, _ := ret[0].(*entity.TemperatureInfo)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Execute indicates an expected call of Execute.
+func (mr *MockProxyTemperatureUseCaseMockRecorder) Execute(ctx, zipCode any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Execute", reflect.TypeOf((*MockProxyTemperatureUseCase)(nil).Execute), ctx, zipCode)
 }
