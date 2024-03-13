@@ -1,0 +1,382 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>handler: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/GeovaneCavalcante/temperatura-cep/internal/infra/web/handler/temperature.go (100.0%)</option>
+				
+				<option value="file1">github.com/GeovaneCavalcante/temperatura-cep/internal/usecase/temperature/find_temperature.go (100.0%)</option>
+				
+				<option value="file2">github.com/GeovaneCavalcante/temperatura-cep/pkg/address/viacep/viacep.go (100.0%)</option>
+				
+				<option value="file3">github.com/GeovaneCavalcante/temperatura-cep/pkg/temperature/weather/weather.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package handler
+
+import (
+        "encoding/json"
+        "net/http"
+
+        "github.com/GeovaneCavalcante/temperatura-cep/internal/entity"
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/logger"
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/temperature"
+)
+
+type WebTemperatureHandler struct {
+        FindTemperature entity.FindTemperatureUseCase
+}
+
+type TemperaturePresenter struct {
+        TempC float64 `json:"temp_C"`
+        TempF float64 `json:"temp_F"`
+        TempK float64 `json:"temp_K"`
+}
+
+func NewWebTemperatureHandler(findTemperature entity.FindTemperatureUseCase) *WebTemperatureHandler <span class="cov8" title="1">{
+        return &amp;WebTemperatureHandler{
+                FindTemperature: findTemperature,
+        }
+}</span>
+
+func (h *WebTemperatureHandler) TemperatureByCepHandler(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+
+        ctx := r.Context()
+        logger.Info("[TemperatureByCepHandler] starting handler")
+        if r.Method != http.MethodGet </span><span class="cov8" title="1">{
+                w.WriteHeader(http.StatusMethodNotAllowed)
+                return
+        }</span>
+        <span class="cov8" title="1">w.Header().Set("Content-Type", "application/json")
+
+        zipcode := r.URL.Query().Get("cep")
+
+        if !zipCodeValidator(zipcode) </span><span class="cov8" title="1">{
+                logger.Error("[TemperatureByCepHandler] invalid zipcode", nil)
+                w.WriteHeader(http.StatusUnprocessableEntity)
+                w.Write([]byte("invalid zipcode"))
+                return
+        }</span>
+
+        <span class="cov8" title="1">tempData, err := h.FindTemperature.Execute(ctx, zipcode)
+
+        if err == entity.ErrZipCodeNotFound </span><span class="cov8" title="1">{
+                logger.Error("[TemperatureByCepHandler] zipcode not found", err)
+                w.WriteHeader(http.StatusNotFound)
+                w.Write([]byte("can not found zipcode"))
+                return
+        }</span>
+
+        <span class="cov8" title="1">if err != nil </span><span class="cov8" title="1">{
+                logger.Error("[TemperatureByCepHandler] fail to execute usecase FindTemperature", err)
+                w.WriteHeader(http.StatusInternalServerError)
+                w.Write([]byte("internal server error"))
+                return
+        }</span>
+
+        <span class="cov8" title="1">tempDataPresenter := toTemperaturePresenter(tempData)
+        json.NewEncoder(w).Encode(&amp;tempDataPresenter)</span>
+}
+
+func toTemperaturePresenter(temp *temperature.Info) *TemperaturePresenter <span class="cov8" title="1">{
+        return &amp;TemperaturePresenter{
+                TempC: temp.Celsius,
+                TempF: temp.Fahrenheit,
+                TempK: temp.Kelvin,
+        }
+}</span>
+
+func zipCodeValidator(zipCode string) bool <span class="cov8" title="1">{
+        return len(zipCode) == 8
+}</span>
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package temperature
+
+import (
+        "context"
+
+        "github.com/GeovaneCavalcante/temperatura-cep/internal/entity"
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/address"
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/logger"
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/temperature"
+)
+
+type FindTemperatureUseCase struct {
+        AddressFetcher     address.AddressFetcher
+        TemperatureFetcher temperature.TemperatureFetcher
+}
+
+func NewFindTemperatureUseCase(af address.AddressFetcher, tf temperature.TemperatureFetcher) *FindTemperatureUseCase <span class="cov8" title="1">{
+        return &amp;FindTemperatureUseCase{
+                AddressFetcher:     af,
+                TemperatureFetcher: tf,
+        }
+}</span>
+
+func (s *FindTemperatureUseCase) Execute(ctx context.Context, zipCode string) (*temperature.Info, error) <span class="cov8" title="1">{
+        logger.Info("[FindTemperatureUseCase] starting usecase for zipcode: " + zipCode)
+        address, err := s.AddressFetcher.GetByZipCode(ctx, zipCode)
+        if err != nil </span><span class="cov8" title="1">{
+                logger.Error("[FindTemperatureUseCase] fail to execute AddressApi for zipcode: "+zipCode, err)
+                return nil, entity.ErrZipCodeNotFound
+        }</span>
+        <span class="cov8" title="1">temp, err := s.TemperatureFetcher.GetByCity(ctx, address.City)
+        if err != nil </span><span class="cov8" title="1">{
+                logger.Error("[FindTemperatureUseCase] fail to execute TemperatureApi  for zipcode: "+zipCode, err)
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">logger.Info("[FindTemperatureUseCase] finishing usecase for zipcode: " + zipCode + " with success")
+        return temp, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package viacep
+
+import (
+        "context"
+        "encoding/json"
+        "fmt"
+
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/address"
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/logger"
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/requester"
+)
+
+type Response struct {
+        Cep         string `json:"cep"`
+        Logradouro  string `json:"logradouro"`
+        Complemento string `json:"complemento"`
+        Bairro      string `json:"bairro"`
+        Localidade  string `json:"localidade"`
+        Uf          string `json:"uf"`
+        Gia         string `json:"gia"`
+        Ddd         string `json:"ddd"`
+        Siafi       string `json:"siafi"`
+        Erro        bool   `json:"erro"`
+}
+
+type ViaCepFetcher struct {
+        Url       string
+        Requester requester.Sender
+}
+
+func New(url string, req requester.Sender) *ViaCepFetcher <span class="cov8" title="1">{
+        return &amp;ViaCepFetcher{
+                Url:       url,
+                Requester: req,
+        }
+}</span>
+
+func (v *ViaCepFetcher) GetByZipCode(ctx context.Context, zipCode string) (*address.Info, error) <span class="cov8" title="1">{
+
+        logger.Info("[ViaCepFetcher] starting api for zipcode: " + zipCode)
+
+        cfg := requester.Configuration{
+                Url:        v.Url + "/" + zipCode + "/json/",
+                Method:     "get",
+                ContetType: "application/json",
+        }
+
+        res, err := v.Requester.Send(ctx, cfg)
+        if err != nil </span><span class="cov8" title="1">{
+                logger.Error("[ViaCepFetcher] fail to execute http request for zipcode "+zipCode, err)
+                return nil, fmt.Errorf("fail to execute http request for zipcode %s: %w", zipCode, err)
+        }</span>
+
+        <span class="cov8" title="1">var zipCodeInfo Response
+
+        err = json.Unmarshal(res.Body, &amp;zipCodeInfo)
+        if err != nil </span><span class="cov8" title="1">{
+                logger.Error("[ViaCepFetcher] fail to unmarshal response body for zipcode "+zipCode, err)
+                return nil, fmt.Errorf("fail to unmarshal response body for zipcode %s: %w", zipCode, err)
+        }</span>
+
+        <span class="cov8" title="1">if zipCodeInfo.Erro </span><span class="cov8" title="1">{
+                logger.Error("[ViaCepFetcher] zipcode not found: "+zipCode, nil)
+                return nil, fmt.Errorf("zipcode not found: %s", zipCode)
+        }</span>
+        <span class="cov8" title="1">AddressInfo := toAddressInfo(zipCodeInfo)
+
+        logger.Info("[ViaCepFetcher] finishing api for zipcode " + zipCode)
+
+        return AddressInfo, nil</span>
+}
+
+func toAddressInfo(zipCodeInfo Response) *address.Info <span class="cov8" title="1">{
+        return &amp;address.Info{
+                City: zipCodeInfo.Localidade,
+        }
+}</span>
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package weather
+
+import (
+        "context"
+        "encoding/json"
+        "fmt"
+        "net/url"
+
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/logger"
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/requester"
+        "github.com/GeovaneCavalcante/temperatura-cep/pkg/temperature"
+)
+
+type Response struct {
+        Current struct {
+                TempC float64 `json:"temp_c"`
+                TempF float64 `json:"temp_f"`
+        } `json:"current"`
+}
+
+type WeatherFetcher struct {
+        Url       string
+        Key       string
+        Requester requester.Sender
+}
+
+func New(url, key string, req requester.Sender) *WeatherFetcher <span class="cov8" title="1">{
+        return &amp;WeatherFetcher{
+                Url:       url,
+                Key:       key,
+                Requester: req,
+        }
+}</span>
+
+func (w *WeatherFetcher) GetByCity(ctx context.Context, city string) (*temperature.Info, error) <span class="cov8" title="1">{
+
+        logger.Info("[WeatherFetcher] starting api for city: " + city)
+        cfg := requester.Configuration{
+                Url:        fmt.Sprintf("%s?key=%s&amp;q=%s", w.Url, w.Key, url.QueryEscape(city)),
+                Method:     "get",
+                ContetType: "application/json",
+        }
+
+        res, err := w.Requester.Send(ctx, cfg)
+
+        if err != nil </span><span class="cov8" title="1">{
+                logger.Error("[WeatherFetcher] fail to execute http request for city "+city, err)
+                return nil, fmt.Errorf("fail to execute http request for city %s: %w", city, err)
+        }</span>
+
+        <span class="cov8" title="1">var weatherInfo Response
+
+        err = json.Unmarshal(res.Body, &amp;weatherInfo)
+        if err != nil </span><span class="cov8" title="1">{
+                logger.Error("[WeatherFetcher] fail to unmarshal response body for city "+city, err)
+                return nil, fmt.Errorf("fail to unmarshal response body for city %s: %w", city, err)
+        }</span>
+
+        <span class="cov8" title="1">temperatureInfo := toTemperatureInfo(weatherInfo)
+
+        logger.Info("[WeatherFetcher] finishing api for city " + city)
+        return temperatureInfo, nil</span>
+}
+
+func toTemperatureInfo(weatherInfo Response) *temperature.Info <span class="cov8" title="1">{
+        return &amp;temperature.Info{
+                Celsius:    weatherInfo.Current.TempC,
+                Kelvin:     celsiusToKelvin(weatherInfo.Current.TempC),
+                Fahrenheit: weatherInfo.Current.TempF,
+        }
+}</span>
+
+func celsiusToKelvin(celsius float64) float64 <span class="cov8" title="1">{
+        return celsius + 273.15
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
