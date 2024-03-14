@@ -28,7 +28,7 @@ func (h *WebTemperatureProxyHandler) TemperatureProxyHandler(w http.ResponseWrit
 	ctx := r.Context()
 
 	logger.Info("[TemperatureByCepHandler] starting handler")
-	if r.Method != http.MethodGet {
+	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
