@@ -61,8 +61,15 @@ Após a execução, o arquivo `coverage.html` será gerado na raiz do projeto, p
 
 ## Uso da API
 
-A Temperature API está disponível no seguinte link: http://localhost:8080/temperature?cep=65909001
+A Temperature API está disponível no seguinte link: http://localhost:8080/temperature
 
-Para utilizar, passe o CEP desejado via query params, por exemplo: `http://localhost:8080/temperature?cep=SEU_CEP_AQUI`.
+Para utilizar, passe o CEP desejado via body e faça chamada via POST, por exemplo:
+```bash
+curl --location 'http://localhost:8080/temperature' \
+--header 'Content-Type: application/json' \
+--data '{
+    "cep": "01153000"
+}'
+```
 
 Para acessar os traces da aplicação acesse: http://localhost:9411/zipkin/
