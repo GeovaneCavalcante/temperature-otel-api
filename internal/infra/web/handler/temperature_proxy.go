@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/GeovaneCavalcante/temperatura-cep/configs"
@@ -10,6 +11,10 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 )
+
+type RequestBody struct {
+	Cep string `json:"cep"`
+}
 
 type WebTemperatureProxyHandler struct {
 	ProxyTemperature entity.ProxyTemperatureUseCase
@@ -33,8 +38,24 @@ func (h *WebTemperatureProxyHandler) TemperatureProxyHandler(w http.ResponseWrit
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		logger.Error("[TemperatureByCepHandler] fail to read body", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
 
-	zipcode := r.URL.Query().Get("cep")
+	var requestBody RequestBody
+	err = json.Unmarshal(body, &requestBody)
+	if err != nil {
+		logger.Error("[TemperatureByCepHandler] fail to unmarshal body", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	zipcode := requestBody.Cep
 
 	if !zipCodeValidator(zipcode) {
 		logger.Error("[TemperatureByCepHandler] invalid zipcode", nil)
